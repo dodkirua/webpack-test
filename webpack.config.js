@@ -12,6 +12,7 @@ module.exports = {
         path: path.resolve(__dirname, 'public/build'),
         filename: "[name].js",
         publicPath: "build",
+        clean: true,
     },
 
     module: {
@@ -47,7 +48,8 @@ module.exports = {
                 test: /\.js$/i,
                 loader: "babel-loader",
                 options: {
-                    presets: ['@']
+                    presets: ['@babel/preset-env'],
+                    plugins: ['@babel/plugin-proposal-object-rest-spread']
                 }
             },
         ],
