@@ -2,51 +2,71 @@ require('webpack');
 const path = require('path');
 
 module.exports = (env, argv) => {
-
     const config = argv.mode === 'development' ? devConfig() : prodConfig();
-
     return {
         entry: {
-            front: './assets/front.js',
-            admin: './assets/admin.js'
+            front: "./assets/front.js",
+            admin: "./assets/admin.js"
         },
+
         output: {
-            path: path.resolve(__dirname, 'public/build'),
-            filename: "js/[name].js",
-            publicPath: "build",
-            clean: true,
+            path: path.resolve(__dirname, 'public'),
+            filename: "build/js/[name].js",
+            publicPath: "/",
+            clean: {
+                keep: /index\.html|index\.php/,
+            },
         },
 
+        ...config
     }
+}
 
-};
 /**
- * Development mode configuration
- * @returns {{mode: string, devtool: string, optimization: {minimize: boolean}, module: {rules: [{test: RegExp, use: [string, {loader: string, options: {sourceMap: boolean}}]}, {test: RegExp, generator: {filename: string}, type: string}]}}}
+ * Mode dev
  */
-const devConfig = () => {
+function devConfig() {
+
     return {
         mode: 'development',
         devtool: 'source-map',
-
         module: {
             rules: [
                 {
                     test: /\.css$/i,
-                    use: ["style-loader", {loader: "css-loader", options: {sourceMap: true}}],
+                    use: ["style-loader", "css-loader"]
                 },
+                // Règles fichiers images
                 {
-                    test: /\.(png|jpe?g|gif|svg)$/i,
-                    type: 'assets/ressource',
-                    generator: {filename: 'images/[name][ext]'}
+                    test: /\.(png|jpe?g|gif)$/i,
+                    type: 'asset/resource',
+                    generator: {filename: 'build/images/[name][ext]'}
                 },
-            ],
+            ]
         },
+
+        devServer: {
+            host: 'localhost',
+            watchFiles: ['assets/*'],
+            static: {
+                directory: path.join(__dirname, 'public'),
+                watch: true,
+            },
+            compress: true,
+            port: 9000,
+            hot: true,
+            open: true,
+        },
+
         optimization: {minimize: false},
     }
-};
+}
 
-const prodConfig = () => {
+
+/**
+ * Mode production
+ */
+function prodConfig() {
     const MiniCssExtractPlugin = require("mini-css-extract-plugin");
     const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
     const TerserPlugin = require("terser-webpack-plugin");
@@ -57,30 +77,35 @@ const prodConfig = () => {
             rules: [
                 {
                     test: /\.css$/i,
-                    use: [MiniCssExtractPlugin.loader, "css-loader"],
+                    use: [MiniCssExtractPlugin.loader, "css-loader"]
                 },
+
+                // Règles fichiers images
                 {
-                    test: /\.(png|jpe?g|gif|svg)$/i,
-                    type: 'assets/ressource',
-                    generator: {
-                        filename: 'images/[name][ext]'
+                    test: /\.(png|jpe?g|gif)$/i,
+                    type: 'asset/resource',
+                    generator: {filename: 'build/images/[name][ext]'}
+                },
+
+                // Configuration de babel pour les navigateurs plus anciens.
+                {
+                    test: /\.js$/,
+                    loader: 'babel-loader',
+                    options: {
+                        presets: ['@babel/preset-env'],
+                        plugins: ['@babel/plugin-proposal-object-rest-spread']
                     }
                 },
-                {
-                    test: /\.js$/i,
-                    loader: 'babel-loader',
-                    options: {presets: ['@babel/preset-env'], plugins: ['@babel/plugin-proposal-object-rest-spread']}
-                },
-            ],
+            ]
         },
 
         optimization: {
             minimize: true,
-            minimizer: [new TerserPlugin(), new CssMinimizerPlugin(),],
+            minimizer: [new CssMinimizerPlugin(), new TerserPlugin()],
         },
 
         plugins: [
-            new MiniCssExtractPlugin({filename: "css/[name].css",}),
+            new MiniCssExtractPlugin({ filename: "build/css/[name].css", })
         ],
-    };
-};
+    }
+}
