@@ -1,69 +1,86 @@
 require('webpack');
 const path = require('path');
-const MiniCssExtractPlugin = require("mini-css-extract-plugin");
-const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
-const TerserPlugin = require("terser-webpack-plugin");
 
-module.exports = {
-    entry: {
-        front: './assets/front.js',
-        admin: './assets/admin.js'
-    },
-    output: {
-        path: path.resolve(__dirname, 'public/build'),
-        filename: "[name].js",
-        publicPath: "build",
-        clean: true,
-    },
+module.exports = (env, argv) => {
 
-    module: {
-        rules: [
-            // rules css files
-            {
-                test: /\.css$/i,
-                use: [
-                    {
-// style-loader for css in head
-// MiniCssExtractPlugin for css in a same name file
-                        loader: MiniCssExtractPlugin.loader,
-                    },
-                    {
-                        loader: "css-loader",
-                        options: {
-                            sourceMap: true,
-                        }
-                    },
-                ],
-            },
-            //rules images files
-            {
-                test: /\.(png|jpe?g|gif|svg)$/i,
-                type: 'asset/ressource',
-                generator: {
-                    filename: 'images/[name][ext]'
-                }
-            },
+    const config = argv.mode === 'development' ? devConfig() : prodConfig();
 
-            //babel config
-            {
-                test: /\.js$/i,
-                loader: "babel-loader",
-                options: {
-                    presets: ['@babel/preset-env'],
-                    plugins: ['@babel/plugin-proposal-object-rest-spread']
-                }
-            },
+    return {
+        entry: {
+            front: './assets/front.js',
+            admin: './assets/admin.js'
+        },
+        output: {
+            path: path.resolve(__dirname, 'public/build'),
+            filename: "js/[name].js",
+            publicPath: "build",
+            clean: true,
+        },
+
+    }
+
+};
+/**
+ * Development mode configuration
+ * @returns {{mode: string, devtool: string, optimization: {minimize: boolean}, module: {rules: [{test: RegExp, use: [string, {loader: string, options: {sourceMap: boolean}}]}, {test: RegExp, generator: {filename: string}, type: string}]}}}
+ */
+const devConfig = () => {
+    return {
+        mode: 'development',
+        devtool: 'source-map',
+
+        module: {
+            rules: [
+                {
+                    test: /\.css$/i,
+                    use: ["style-loader", {loader: "css-loader", options: {sourceMap: true}}],
+                },
+                {
+                    test: /\.(png|jpe?g|gif|svg)$/i,
+                    type: 'assets/ressource',
+                    generator: {filename: 'images/[name][ext]'}
+                },
+            ],
+        },
+        optimization: {minimize: false},
+    }
+};
+
+const prodConfig = () => {
+    const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+    const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
+    const TerserPlugin = require("terser-webpack-plugin");
+
+    return {
+        mode: 'production',
+        module: {
+            rules: [
+                {
+                    test: /\.css$/i,
+                    use: [MiniCssExtractPlugin.loader, "css-loader"],
+                },
+                {
+                    test: /\.(png|jpe?g|gif|svg)$/i,
+                    type: 'assets/ressource',
+                    generator: {
+                        filename: 'images/[name][ext]'
+                    }
+                },
+                {
+                    test: /\.js$/i,
+                    loader: 'babel-loader',
+                    options: {presets: ['@babel/preset-env'], plugins: ['@babel/plugin-proposal-object-rest-spread']}
+                },
+            ],
+        },
+
+        optimization: {
+            minimize: true,
+            minimizer: [new TerserPlugin(), new CssMinimizerPlugin(),],
+        },
+
+        plugins: [
+            new MiniCssExtractPlugin({filename: "css/[name].css",}),
         ],
-    },
-    optimization: {
-        minimize: true,
-        minimizer: [
-            new CssMinimizerPlugin(),
-            new TerserPlugin(),
-        ],
-    },
-
-    plugins: [].concat([new MiniCssExtractPlugin({
-        filename: "css/[name].css"
-    })]),
+    };
 };
